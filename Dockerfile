@@ -3,13 +3,24 @@
 # Build stage for frontend
 FROM node:18-alpine as frontend-build
 WORKDIR /app/frontend
+
+# Copy package files first
 COPY frontend/package*.json ./
-RUN npm ci --only=production
+
+# Install dependencies (including dev dependencies for build)
+RUN npm ci
+
+# Copy frontend source code
 COPY frontend/ ./
+
+# Set environment variable for production build
+ENV NODE_ENV=production
+
+# Build the frontend
 RUN npm run build
 
 # Python backend stage
-FROM python:3.11-slim as backend
+FROM python:3.11-slim as production
 
 # Set working directory
 WORKDIR /app
@@ -27,10 +38,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy backend code
 COPY backend/ ./
 
-# Copy built frontend files
+# Copy built frontend files to serve them statically
 COPY --from=frontend-build /app/frontend/dist ./static
 
-# Create non-root user
+# Create non-root user for security
 RUN useradd --create-home --shell /bin/bash app
 RUN chown -R app:app /app
 USER app
