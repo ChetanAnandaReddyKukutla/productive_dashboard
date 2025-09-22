@@ -7,7 +7,7 @@ from app.models.user import User
 from app.schemas.project import ProjectCreate, ProjectOut
 from app.core.security import get_current_user
 
-router = APIRouter(prefix="/projects", tags=["Projects"])
+router = APIRouter(tags=["Projects"])
 
 # Dependency to get DB session
 def get_db():

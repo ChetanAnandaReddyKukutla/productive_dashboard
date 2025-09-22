@@ -6,7 +6,7 @@ from app.models.task import Task,TaskStatus, TaskPriority
 from app.schemas.task import TaskCreate, TaskOut
 from app.core.security import get_current_user
 
-router = APIRouter(prefix="/tasks", tags=["Tasks"])
+router = APIRouter(tags=["Tasks"])
 
 def get_db():
     db = SessionLocal()

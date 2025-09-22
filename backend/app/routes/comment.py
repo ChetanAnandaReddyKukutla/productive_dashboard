@@ -7,7 +7,7 @@ from app.core.security import get_current_user
 from app.schemas.comment import CommentCreate, CommentOut
 from typing import List
 
-router = APIRouter(prefix="/comments", tags=["Comments"])
+router = APIRouter(tags=["Comments"])
 
 def get_db():
     db = SessionLocal()

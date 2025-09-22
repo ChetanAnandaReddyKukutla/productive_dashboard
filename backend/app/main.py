@@ -28,10 +28,10 @@ app.add_middleware(
 Base.metadata.create_all(bind=engine)
 
 # Include API routes with /api prefix for clear separation
-app.include_router(auth.router, prefix="/api")
-app.include_router(project.router, prefix="/api")
-app.include_router(task.router, prefix="/api")
-app.include_router(comment.router, prefix="/api")
+app.include_router(auth.router, prefix="/api/auth")
+app.include_router(project.router, prefix="/api/projects")
+app.include_router(task.router, prefix="/api/tasks")
+app.include_router(comment.router, prefix="/api/comments")
 
 # Health check endpoint
 @app.get("/api/health")
