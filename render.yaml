@@ -1,0 +1,35 @@
+services:
+  # Backend API Service
+  - type: web
+    name: productiveboards-api
+    env: python
+    buildCommand: "cd backend && pip install -r requirements.txt"
+    startCommand: "cd backend && uvicorn app.main:app --host 0.0.0.0 --port $PORT"
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: productiveboards-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_ALGORITHM
+        value: HS256
+      - key: JWT_EXPIRATION_MINUTES
+        value: 1440
+    healthCheckPath: /health
+
+  # Frontend Service
+  - type: web
+    name: productiveboards-frontend
+    env: static
+    buildCommand: "cd frontend && npm ci && npm run build"
+    staticPublishPath: ./frontend/dist
+    envVars:
+      - key: VITE_API_URL
+        value: https://productiveboards-api.onrender.com
+
+databases:
+  # PostgreSQL Database
+  - name: productiveboards-db
+    databaseName: productiveboards
+    user: productiveboards_user
