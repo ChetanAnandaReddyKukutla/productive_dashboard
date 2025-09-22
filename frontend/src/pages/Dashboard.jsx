@@ -14,10 +14,8 @@ import {
   useSensors,
   PointerSensor,
   KeyboardSensor,
-} from '@dnd-kit/core';
-import {
-  sortableKeyboardCoordinates,
-} from '@dnd-kit/sortable';
+} from "@dnd-kit/core";
+import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 
 export default function DashboardWrapper() {
   return (
@@ -53,28 +51,20 @@ function Dashboard() {
   const [isAddTaskModalOpen, setIsAddTaskModalOpen] = useState(false);
   const [isEditTaskModalOpen, setIsEditTaskModalOpen] = useState(false);
 
-  // Responsive state
+  // Sidebar / drag states
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-
-  // Drag and drop state
   const [activeTask, setActiveTask] = useState(null);
 
-  // Configure drag sensors
+  // Drag sensors
   const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 5,
-      },
-    }),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
 
-  // Fetch projects
+  // === PROJECT API CALLS ===
   const fetchProjects = async () => {
     try {
-      const res = await API.get("/projects");
+      const res = await API.get("/projects/"); // ✅ trailing slash
       setProjects(res.data);
     } catch (err) {
       console.error("❌ Error fetching projects:", err.response?.data || err);
@@ -82,31 +72,13 @@ function Dashboard() {
     }
   };
 
-  // Fetch tasks for selected project
-  const fetchTasks = async (projectId) => {
-    try {
-      console.log(`🔍 Fetching tasks for project ${projectId}...`);
-      const res = await API.get(`/tasks/project/${projectId}`);
-      console.log(`✅ Tasks fetched successfully:`, res.data);
-      setTasks(res.data);
-    } catch (error) {
-      console.error(`❌ Error fetching tasks:`, error.response?.data || error);
-      alert("Error fetching tasks");
-    }
-  };
-
-  useEffect(() => {
-    fetchProjects();
-  }, []);
-
-  // PROJECT CRUD functions
   const handleCreateProject = async () => {
     if (!newProjectTitle.trim()) {
       alert("Please enter a project title");
       return;
     }
     try {
-      const res = await API.post("/projects", {
+      const res = await API.post("/projects/", {
         title: newProjectTitle,
         description: newProjectDescription,
       });
@@ -125,7 +97,7 @@ function Dashboard() {
       return;
     }
     try {
-      const res = await API.put(`/projects/${projectId}`, {
+      const res = await API.put(`/projects/${projectId}/`, {
         title: editProjectTitle,
         description: editProjectDescription,
       });
@@ -142,7 +114,7 @@ function Dashboard() {
   const handleDeleteProject = async (projectId) => {
     if (!confirm("Are you sure you want to delete this project?")) return;
     try {
-      await API.delete(`/projects/${projectId}`);
+      await API.delete(`/projects/${projectId}/`);
       setProjects(projects.filter((p) => p.id !== projectId));
       if (selectedProject === projectId) {
         setSelectedProject(null);
@@ -157,34 +129,40 @@ function Dashboard() {
   const handleProjectClick = (projectId) => {
     setSelectedProject(projectId);
     fetchTasks(projectId);
-    setIsSidebarOpen(false); // close sidebar on mobile
+    setIsSidebarOpen(false);
   };
 
-  // TASK CRUD functions
+  // === TASK API CALLS ===
+  const fetchTasks = async (projectId) => {
+    try {
+      const res = await API.get(`/tasks/project/${projectId}/`); // ✅ trailing slash
+      setTasks(res.data);
+    } catch (err) {
+      console.error("❌ Error fetching tasks:", err.response?.data || err);
+      alert("Error fetching tasks");
+    }
+  };
+
   const handleCreateTask = async () => {
     if (!newTaskTitle.trim()) {
       alert("Please enter a task title");
       return;
     }
     try {
-      console.log(`🆕 Creating task for project ${selectedProject}...`);
-
-      const res = await API.post(`/tasks/project/${selectedProject}`, {
+      const res = await API.post(`/tasks/project/${selectedProject}/`, {
         title: newTaskTitle,
         description: newTaskDesc,
-        status: "to_do", // backend enum
+        status: "to_do", // ✅ backend enum
         priority: newTaskPriority.toLowerCase(),
         assignee_id: null,
       });
-
-      console.log(`✅ Task created successfully:`, res.data);
       setTasks([...tasks, res.data]);
       setNewTaskTitle("");
       setNewTaskDesc("");
       setNewTaskPriority("medium");
       setIsAddTaskModalOpen(false);
-    } catch (error) {
-      console.error(`❌ Error creating task:`, error.response?.data || error);
+    } catch (err) {
+      console.error("❌ Error creating task:", err.response?.data || err);
       alert("Error creating task");
     }
   };
@@ -196,19 +174,17 @@ function Dashboard() {
     }
     try {
       const task = tasks.find((t) => t.id === taskId);
-
-      const res = await API.put(`/tasks/${taskId}`, {
+      const res = await API.put(`/tasks/${taskId}/`, {
         title: editTaskTitle,
         description: editTaskDesc,
-        status: task.status, // preserve existing status
+        status: task.status, // ✅ required by backend
         priority: editTaskPriority.toLowerCase(),
         assignee_id: task.assignee_id,
       });
-
       setTasks(tasks.map((t) => (t.id === taskId ? res.data : t)));
       closeEditTaskModal();
-    } catch (error) {
-      console.error(`❌ Error updating task:`, error.response?.data || error);
+    } catch (err) {
+      console.error("❌ Error updating task:", err.response?.data || err);
       alert("Error updating task");
     }
   };
@@ -216,94 +192,64 @@ function Dashboard() {
   const handleDeleteTask = async (taskId) => {
     if (!confirm("Are you sure you want to delete this task?")) return;
     try {
-      await API.delete(`/tasks/${taskId}`);
+      await API.delete(`/tasks/${taskId}/`);
       setTasks(tasks.filter((t) => t.id !== taskId));
-    } catch (error) {
-      console.error(`❌ Error deleting task:`, error.response?.data || error);
+    } catch (err) {
+      console.error("❌ Error deleting task:", err.response?.data || err);
       alert("Error deleting task");
     }
   };
 
-  // Drag and drop handlers
+  // === DRAG AND DROP ===
   const handleDragStart = (event) => {
     const { active } = event;
     const task = tasks.find((t) => t.id === active.id);
     setActiveTask(task);
-    console.log('🔄 Drag started for task:', task?.title, 'ID:', active.id);
   };
 
   const handleDragEnd = async (event) => {
     const { active, over } = event;
-    console.log('🎯 Drag ended:', { activeId: active.id, overId: over?.id });
     setActiveTask(null);
-
-    if (!over) {
-      console.log('❌ No drop target');
-      return;
-    }
+    if (!over) return;
 
     const taskId = active.id;
-    const newColumnId = over.id;
-
-    // Backend-compatible status map
     const statusMap = {
-      'todo-column': 'to_do',
-      'in-progress-column': 'in_progress',
-      'done-column': 'done',
+      "todo-column": "to_do",
+      "in-progress-column": "in_progress",
+      "done-column": "done",
     };
-
-    const targetStatus = statusMap[newColumnId];
-    console.log('🎯 Target status:', targetStatus);
-
-    if (!targetStatus) {
-      console.log('❌ Invalid drop target');
-      return;
-    }
+    const targetStatus = statusMap[over.id];
+    if (!targetStatus) return;
 
     const task = tasks.find((t) => t.id === taskId);
-    if (!task) {
-      console.log('❌ Task not found');
-      return;
-    }
+    if (!task || task.status === targetStatus) return;
 
-    if (task.status === targetStatus) {
-      console.log('⚠️ Task already in target status');
-      return;
-    }
-
-    console.log(`✅ Moving task "${task.title}" from ${task.status} to ${targetStatus}`);
-
-    // Optimistically update UI
-    const updatedTask = { ...task, status: targetStatus };
-    setTasks(tasks.map((t) => (t.id === taskId ? updatedTask : t)));
+    // Optimistic update
+    setTasks(tasks.map((t) => (t.id === taskId ? { ...t, status: targetStatus } : t)));
 
     try {
       let res;
-      if (targetStatus === 'done') {
-        res = await API.patch(`/tasks/${taskId}/mark-done`);
-      } else if (targetStatus === 'in_progress') {
-        res = await API.patch(`/tasks/${taskId}/mark-in-progress`);
-      } else if (targetStatus === 'to_do') {
-        res = await API.patch(`/tasks/${taskId}/mark-todo`);
-      }
+      if (targetStatus === "done")
+        res = await API.patch(`/tasks/${taskId}/mark-done/`);
+      else if (targetStatus === "in_progress")
+        res = await API.patch(`/tasks/${taskId}/mark-in-progress/`);
+      else if (targetStatus === "to_do")
+        res = await API.patch(`/tasks/${taskId}/mark-todo/`);
 
       if (res) {
-        setTasks(prevTasks =>
-          prevTasks.map((t) => (t.id === taskId ? res.data : t))
+        setTasks((prev) =>
+          prev.map((t) => (t.id === taskId ? res.data : t))
         );
-        console.log('✅ Task status updated successfully');
       }
-    } catch (error) {
-      console.error('❌ Error updating task status:', error.response?.data || error);
-      // Revert optimistic update
-      setTasks(prevTasks =>
-        prevTasks.map((t) => (t.id === taskId ? task : t))
+    } catch (err) {
+      console.error("❌ Error updating task status:", err.response?.data || err);
+      setTasks((prev) =>
+        prev.map((t) => (t.id === taskId ? task : t))
       );
-      alert(`Error updating task status. Changes reverted.`);
     }
   };
 
-  // Modal helpers
+  // === MODALS ===
   const openAddTaskModal = () => setIsAddTaskModalOpen(true);
   const closeAddTaskModal = () => {
     setIsAddTaskModalOpen(false);
@@ -325,6 +271,11 @@ function Dashboard() {
     setEditTaskDesc("");
     setEditTaskPriority("medium");
   };
+
+  // === INIT ===
+  useEffect(() => {
+    fetchProjects();
+  }, []);
 
   return (
     <DndContext
