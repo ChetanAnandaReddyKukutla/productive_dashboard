@@ -135,7 +135,7 @@ function Dashboard() {
   // === TASK API CALLS ===
   const fetchTasks = async (projectId) => {
     try {
-      const res = await API.get(`/tasks/project/${projectId}/`); // ✅ trailing slash
+      const res = await API.get(`/tasks/project/${projectId}/`);
       setTasks(res.data);
     } catch (err) {
       console.error("❌ Error fetching tasks:", err.response?.data || err);
@@ -177,7 +177,7 @@ function Dashboard() {
       const res = await API.put(`/tasks/${taskId}/`, {
         title: editTaskTitle,
         description: editTaskDesc,
-        status: task.status, // ✅ required by backend
+        status: task.status, // ✅ required
         priority: editTaskPriority.toLowerCase(),
         assignee_id: task.assignee_id,
       });
@@ -197,6 +197,36 @@ function Dashboard() {
     } catch (err) {
       console.error("❌ Error deleting task:", err.response?.data || err);
       alert("Error deleting task");
+    }
+  };
+
+  const handleMarkTaskDone = async (taskId) => {
+    try {
+      const res = await API.patch(`/tasks/${taskId}/mark-done/`);
+      setTasks(tasks.map((t) => (t.id === taskId ? res.data : t)));
+    } catch (err) {
+      console.error("❌ Error marking done:", err.response?.data || err);
+      alert("Error marking task as done");
+    }
+  };
+
+  const handleMarkTaskInProgress = async (taskId) => {
+    try {
+      const res = await API.patch(`/tasks/${taskId}/mark-in-progress/`);
+      setTasks(tasks.map((t) => (t.id === taskId ? res.data : t)));
+    } catch (err) {
+      console.error("❌ Error marking in-progress:", err.response?.data || err);
+      alert("Error marking task as in-progress");
+    }
+  };
+
+  const handleMarkTaskTodo = async (taskId) => {
+    try {
+      const res = await API.patch(`/tasks/${taskId}/mark-todo/`);
+      setTasks(tasks.map((t) => (t.id === taskId ? res.data : t)));
+    } catch (err) {
+      console.error("❌ Error marking to-do:", err.response?.data || err);
+      alert("Error marking task as to-do");
     }
   };
 
@@ -224,7 +254,7 @@ function Dashboard() {
     const task = tasks.find((t) => t.id === taskId);
     if (!task || task.status === targetStatus) return;
 
-    // Optimistic update
+    // Optimistic UI
     setTasks(tasks.map((t) => (t.id === taskId ? { ...t, status: targetStatus } : t)));
 
     try {
@@ -237,15 +267,11 @@ function Dashboard() {
         res = await API.patch(`/tasks/${taskId}/mark-todo/`);
 
       if (res) {
-        setTasks((prev) =>
-          prev.map((t) => (t.id === taskId ? res.data : t))
-        );
+        setTasks((prev) => prev.map((t) => (t.id === taskId ? res.data : t)));
       }
     } catch (err) {
       console.error("❌ Error updating task status:", err.response?.data || err);
-      setTasks((prev) =>
-        prev.map((t) => (t.id === taskId ? task : t))
-      );
+      setTasks((prev) => prev.map((t) => (t.id === taskId ? task : t)));
     }
   };
 
