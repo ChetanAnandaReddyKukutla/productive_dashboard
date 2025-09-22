@@ -21,7 +21,7 @@ import {
 
 export default function DashboardWrapper() {
   return (
-    <div className="min-h-screen"> {/* Remove top padding from here */}
+    <div className="min-h-screen">
       <Navbar />
       <Dashboard />
     </div>
@@ -43,11 +43,11 @@ function Dashboard() {
   // Task fields
   const [newTaskTitle, setNewTaskTitle] = useState("");
   const [newTaskDesc, setNewTaskDesc] = useState("");
-  const [newTaskPriority, setNewTaskPriority] = useState("Medium");
+  const [newTaskPriority, setNewTaskPriority] = useState("medium");
   const [editTaskId, setEditTaskId] = useState(null);
   const [editTaskTitle, setEditTaskTitle] = useState("");
   const [editTaskDesc, setEditTaskDesc] = useState("");
-  const [editTaskPriority, setEditTaskPriority] = useState("Medium");
+  const [editTaskPriority, setEditTaskPriority] = useState("medium");
 
   // Modal states
   const [isAddTaskModalOpen, setIsAddTaskModalOpen] = useState(false);
@@ -76,7 +76,8 @@ function Dashboard() {
     try {
       const res = await API.get("/projects");
       setProjects(res.data);
-    } catch {
+    } catch (err) {
+      console.error("❌ Error fetching projects:", err.response?.data || err);
       alert("Error fetching projects");
     }
   };
@@ -89,7 +90,7 @@ function Dashboard() {
       console.log(`✅ Tasks fetched successfully:`, res.data);
       setTasks(res.data);
     } catch (error) {
-      console.error(`❌ Error fetching tasks:`, error);
+      console.error(`❌ Error fetching tasks:`, error.response?.data || error);
       alert("Error fetching tasks");
     }
   };
@@ -112,7 +113,8 @@ function Dashboard() {
       setProjects([...projects, res.data]);
       setNewProjectTitle("");
       setNewProjectDescription("");
-    } catch {
+    } catch (err) {
+      console.error("❌ Error creating project:", err.response?.data || err);
       alert("Error creating project");
     }
   };
@@ -131,7 +133,8 @@ function Dashboard() {
       setEditProjectId(null);
       setEditProjectTitle("");
       setEditProjectDescription("");
-    } catch {
+    } catch (err) {
+      console.error("❌ Error updating project:", err.response?.data || err);
       alert("Error updating project");
     }
   };
@@ -145,7 +148,8 @@ function Dashboard() {
         setSelectedProject(null);
         setTasks([]);
       }
-    } catch {
+    } catch (err) {
+      console.error("❌ Error deleting project:", err.response?.data || err);
       alert("Error deleting project");
     }
   };
@@ -153,8 +157,7 @@ function Dashboard() {
   const handleProjectClick = (projectId) => {
     setSelectedProject(projectId);
     fetchTasks(projectId);
-    // Close sidebar on mobile after selection
-    setIsSidebarOpen(false);
+    setIsSidebarOpen(false); // close sidebar on mobile
   };
 
   // TASK CRUD functions
@@ -165,21 +168,23 @@ function Dashboard() {
     }
     try {
       console.log(`🆕 Creating task for project ${selectedProject}...`);
+
       const res = await API.post(`/tasks/project/${selectedProject}`, {
         title: newTaskTitle,
         description: newTaskDesc,
-        status: "To-do",
-        priority: newTaskPriority,
+        status: "to_do", // backend enum
+        priority: newTaskPriority.toLowerCase(),
         assignee_id: null,
       });
+
       console.log(`✅ Task created successfully:`, res.data);
       setTasks([...tasks, res.data]);
       setNewTaskTitle("");
       setNewTaskDesc("");
-      setNewTaskPriority("Medium");
+      setNewTaskPriority("medium");
       setIsAddTaskModalOpen(false);
     } catch (error) {
-      console.error(`❌ Error creating task:`, error);
+      console.error(`❌ Error creating task:`, error.response?.data || error);
       alert("Error creating task");
     }
   };
@@ -190,14 +195,20 @@ function Dashboard() {
       return;
     }
     try {
+      const task = tasks.find((t) => t.id === taskId);
+
       const res = await API.put(`/tasks/${taskId}`, {
         title: editTaskTitle,
         description: editTaskDesc,
-        priority: editTaskPriority,
+        status: task.status, // preserve existing status
+        priority: editTaskPriority.toLowerCase(),
+        assignee_id: task.assignee_id,
       });
+
       setTasks(tasks.map((t) => (t.id === taskId ? res.data : t)));
       closeEditTaskModal();
-    } catch {
+    } catch (error) {
+      console.error(`❌ Error updating task:`, error.response?.data || error);
       alert("Error updating task");
     }
   };
@@ -207,35 +218,16 @@ function Dashboard() {
     try {
       await API.delete(`/tasks/${taskId}`);
       setTasks(tasks.filter((t) => t.id !== taskId));
-    } catch {
+    } catch (error) {
+      console.error(`❌ Error deleting task:`, error.response?.data || error);
       alert("Error deleting task");
-    }
-  };
-
-  // MARK Task as Done
-  const handleMarkTaskDone = async (taskId) => {
-    try {
-      const res = await API.patch(`/tasks/${taskId}/mark-done`);
-      setTasks(tasks.map((t) => (t.id === taskId ? res.data : t)));
-    } catch {
-      alert("Error marking task as done");
-    }
-  };
-
-  // MARK Task as In-Progress
-  const handleMarkTaskInProgress = async (taskId) => {
-    try {
-      const res = await API.patch(`/tasks/${taskId}/mark-in-progress`);
-      setTasks(tasks.map((t) => (t.id === taskId ? res.data : t)));
-    } catch {
-      alert("Error marking task as in-progress");
     }
   };
 
   // Drag and drop handlers
   const handleDragStart = (event) => {
     const { active } = event;
-    const task = tasks.find(t => t.id === active.id);
+    const task = tasks.find((t) => t.id === active.id);
     setActiveTask(task);
     console.log('🔄 Drag started for task:', task?.title, 'ID:', active.id);
   };
@@ -253,23 +245,22 @@ function Dashboard() {
     const taskId = active.id;
     const newColumnId = over.id;
 
-    // Map column IDs to status values
+    // Backend-compatible status map
     const statusMap = {
-      'todo-column': 'To-do',
-      'in-progress-column': 'In-progress',
-      'done-column': 'Done'
+      'todo-column': 'to_do',
+      'in-progress-column': 'in_progress',
+      'done-column': 'done',
     };
 
     const targetStatus = statusMap[newColumnId];
     console.log('🎯 Target status:', targetStatus);
-    
+
     if (!targetStatus) {
       console.log('❌ Invalid drop target');
       return;
     }
 
-    // Find the current task
-    const task = tasks.find(t => t.id === taskId);
+    const task = tasks.find((t) => t.id === taskId);
     if (!task) {
       console.log('❌ Task not found');
       return;
@@ -282,49 +273,44 @@ function Dashboard() {
 
     console.log(`✅ Moving task "${task.title}" from ${task.status} to ${targetStatus}`);
 
-    // Optimistically update the UI first
+    // Optimistically update UI
     const updatedTask = { ...task, status: targetStatus };
     setTasks(tasks.map((t) => (t.id === taskId ? updatedTask : t)));
 
-    // Update task status based on the target column
     try {
       let res;
-      if (targetStatus === 'Done') {
-        console.log('📡 Calling mark-done endpoint');
+      if (targetStatus === 'done') {
         res = await API.patch(`/tasks/${taskId}/mark-done`);
-      } else if (targetStatus === 'In-progress') {
-        console.log('📡 Calling mark-in-progress endpoint');
+      } else if (targetStatus === 'in_progress') {
         res = await API.patch(`/tasks/${taskId}/mark-in-progress`);
-      } else if (targetStatus === 'To-do') {
-        console.log('📡 Calling mark-todo endpoint');
+      } else if (targetStatus === 'to_do') {
         res = await API.patch(`/tasks/${taskId}/mark-todo`);
       }
-      
+
       if (res) {
-        // Update with server response
-        setTasks(prevTasks => prevTasks.map((t) => (t.id === taskId ? res.data : t)));
+        setTasks(prevTasks =>
+          prevTasks.map((t) => (t.id === taskId ? res.data : t))
+        );
         console.log('✅ Task status updated successfully');
       }
     } catch (error) {
-      console.error('❌ Error updating task status:', error);
-      // Revert the optimistic update on error
-      setTasks(prevTasks => prevTasks.map((t) => (t.id === taskId ? task : t)));
-      alert(`Error updating task status to ${targetStatus}. Changes reverted.`);
+      console.error('❌ Error updating task status:', error.response?.data || error);
+      // Revert optimistic update
+      setTasks(prevTasks =>
+        prevTasks.map((t) => (t.id === taskId ? task : t))
+      );
+      alert(`Error updating task status. Changes reverted.`);
     }
   };
 
-  // Helper functions for modals
-  const openAddTaskModal = () => {
-    setIsAddTaskModalOpen(true);
-  };
-
+  // Modal helpers
+  const openAddTaskModal = () => setIsAddTaskModalOpen(true);
   const closeAddTaskModal = () => {
     setIsAddTaskModalOpen(false);
     setNewTaskTitle("");
     setNewTaskDesc("");
-    setNewTaskPriority("Medium");
+    setNewTaskPriority("medium");
   };
-
   const openEditTaskModal = (task) => {
     setEditTaskId(task.id);
     setEditTaskTitle(task.title);
@@ -332,13 +318,12 @@ function Dashboard() {
     setEditTaskPriority(task.priority);
     setIsEditTaskModalOpen(true);
   };
-
   const closeEditTaskModal = () => {
     setIsEditTaskModalOpen(false);
     setEditTaskId(null);
     setEditTaskTitle("");
     setEditTaskDesc("");
-    setEditTaskPriority("Medium");
+    setEditTaskPriority("medium");
   };
 
   return (
