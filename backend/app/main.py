@@ -15,6 +15,7 @@ origins = [
     "https://*.onrender.com",
     "https://*.vercel.app",
     "https://*.netlify.app",
+    "https://productive-dashboard.onrender.com",
 ]
 
 app.add_middleware(
