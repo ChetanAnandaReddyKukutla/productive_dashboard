@@ -12,4 +12,4 @@ class ProjectOut(BaseModel):
     owner_id: int
 
     class Config:
-        orm_mode = True
+        from_attributes = True

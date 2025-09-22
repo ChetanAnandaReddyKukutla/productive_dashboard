@@ -27,41 +27,23 @@ app.add_middleware(
 
 Base.metadata.create_all(bind=engine)
 
-# Include API routes
-app.include_router(auth.router)
-app.include_router(project.router)
-app.include_router(task.router)
-app.include_router(comment.router)
+# Include API routes with /api prefix for clear separation
+app.include_router(auth.router, prefix="/api")
+app.include_router(project.router, prefix="/api")
+app.include_router(task.router, prefix="/api")
+app.include_router(comment.router, prefix="/api")
+
+# Health check endpoint
+@app.get("/api/health")
+def health_check():
+    return {"status": "healthy"}
 
 # Serve static files (frontend) if they exist
 static_dir = os.path.join(os.path.dirname(__file__), "..", "static")
 if os.path.exists(static_dir):
-    app.mount("/static", StaticFiles(directory=static_dir), name="static")
-    
-    @app.get("/")
-    async def serve_frontend():
-        """Serve the frontend index.html"""
-        index_file = os.path.join(static_dir, "index.html")
-        if os.path.exists(index_file):
-            return FileResponse(index_file)
-        return {"message": "Welcome to ProductiveBoards API"}
-    
-    @app.get("/{path:path}")
-    async def serve_frontend_routes(path: str):
-        """Serve frontend for all routes (SPA routing)"""
-        # Check if it's an API route
-        if path.startswith("api/") or path in ["docs", "redoc", "openapi.json", "health"]:
-            return {"error": "Not found"}
-        
-        index_file = os.path.join(static_dir, "index.html")
-        if os.path.exists(index_file):
-            return FileResponse(index_file)
-        return {"error": "Not found"}
+    # Mount static files for assets with proper MIME types
+    app.mount("/", StaticFiles(directory=static_dir, html=True), name="static")
 else:
     @app.get("/")
     def read_root():
-        return {"message": "Welcome to ProductiveBoards API"}
-
-@app.get("/health")
-def health_check():
-    return {"status": "healthy"}
+        return {"message": "Welcome to ProductiveBoards API - Frontend not built"}
