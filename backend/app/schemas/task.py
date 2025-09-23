@@ -6,7 +6,7 @@ class TaskCreate(BaseModel):
     title: str
     description: Optional[str] = None
     assignee_id: Optional[int] = None
-    status: Optional[TaskStatus] = TaskStatus.todo
+    status: Optional[TaskStatus] = TaskStatus.to_do
     priority: Optional[TaskPriority] = TaskPriority.medium
 
 class TaskOut(BaseModel):

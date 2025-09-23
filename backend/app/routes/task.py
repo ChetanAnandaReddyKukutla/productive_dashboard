@@ -119,8 +119,18 @@ def list_tasks(
     status: TaskStatus | None = Query(None),
     priority: TaskPriority | None = Query(None),
     assignee_id: int | None = Query(None),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    user: dict = Depends(get_current_user)
 ):
+    # Verify project ownership
+    from app.models.project import Project
+    project = db.query(Project).filter(Project.id == project_id).first()
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    
+    if project.owner_id != user["user_id"]:
+        raise HTTPException(status_code=403, detail="Not authorized to view tasks")
+    
     query = db.query(Task).filter(Task.project_id == project_id)
     if status:
         query = query.filter(Task.status == status)
