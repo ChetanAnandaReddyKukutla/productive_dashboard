@@ -26,7 +26,7 @@ def create_project(project: ProjectCreate, db: Session = Depends(get_db), user: 
     return new_project
 
 @router.get("/", response_model=list[ProjectOut])
-def list_projects(db: Session = Depends(get_db)):
+def list_projects(db: Session = Depends(get_db), user: dict = Depends(get_current_user)):
     projects = db.query(Project).all()
     return projects
 
